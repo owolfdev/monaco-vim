@@ -86,47 +86,96 @@ export default function HomePage() {
   ) => {
     editorRef.current = editor;
 
+    // Add Link Provider for clickable URLs
+    monacoInstance.languages.registerLinkProvider("markdown", {
+      provideLinks(model) {
+        const links: monaco.languages.ILink[] = [];
+        const regex = /https?:\/\/[^\s)]+/g;
+        const lines = model.getLinesContent();
+
+        lines.forEach((line, i) => {
+          let match;
+          while ((match = regex.exec(line))) {
+            links.push({
+              range: new monacoInstance.Range(
+                i + 1,
+                match.index + 1,
+                i + 1,
+                match.index + match[0].length + 1
+              ),
+              url: match[0],
+            });
+          }
+        });
+
+        return { links };
+      },
+    });
+
     setTimeout(() => {
       editor.focus();
     }, 0);
 
+    // ----------- THIS PART SHOULD BE INSIDE handleEditorDidMount -----------
     editor.addCommand(
       monacoInstance.KeyCode.Enter,
       async () => {
         if (!editorRef.current) return;
-        const value = editorRef.current.getValue();
-        const lines = value.split("\n");
-        const lastLine = lines[lines.length - 1].trim().toLowerCase();
 
-        if (lastLine === "clear") {
+        const position = editorRef.current.getPosition();
+        if (!position) return;
+
+        const model = editorRef.current.getModel();
+        if (!model) return;
+
+        // Get content of the *current* line (where caret is)
+        const lineContent = model
+          .getLineContent(position.lineNumber)
+          .trim()
+          .toLowerCase();
+
+        // Process commands
+        if (lineContent === "clear") {
           editorRef.current.setValue("");
           return;
         }
 
-        if (lastLine === "vim") {
+        if (lineContent === "vim") {
           await enableVim();
         }
-        if (lastLine === "novim" || lastLine === "no vim") {
+        if (lineContent === "novim" || lineContent === "no vim") {
           disableVim();
         }
 
-        const output = COMMANDS[lastLine];
+        const output = COMMANDS[lineContent];
         if (output) {
-          editorRef.current.setValue(value + "\n" + output + "\n");
-          const model = editorRef.current.getModel();
-          if (model) {
-            const lineCount = model.getLineCount();
-            editorRef.current.setPosition({
-              lineNumber: lineCount + 1,
-              column: 1,
-            });
-          }
+          // Insert output *after the current line*
+          const edits = [
+            {
+              range: new monacoInstance.Range(
+                position.lineNumber + 1,
+                1,
+                position.lineNumber + 1,
+                1
+              ),
+              text: output + "\n",
+              forceMoveMarkers: true,
+            },
+          ];
+          model.pushEditOperations([], edits, () => null);
+          editorRef.current.setPosition({
+            lineNumber: position.lineNumber + 2,
+            column: 1,
+          });
         } else {
+          // Default: just insert a newline as usual
           editorRef.current.trigger("keyboard", "type", { text: "\n" });
         }
       },
       ""
     );
+
+    // -----------------------------------------------------------------------
   };
 
   // Cleanup on unmount

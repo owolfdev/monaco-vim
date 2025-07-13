@@ -1,4 +1,3 @@
-// src/types/monaco-vim.d.ts
 declare module "monaco-vim" {
   import * as monaco from "monaco-editor";
   export function initVimMode(
@@ -6,4 +5,5 @@ declare module "monaco-vim" {
     statusBar: HTMLElement
   ): { dispose(): void };
   export type VimMode = ReturnType<typeof initVimMode>;
+  // Optionally, export any other relevant types here if needed in the future
 }
