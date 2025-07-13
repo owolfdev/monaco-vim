@@ -1,103 +1,109 @@
-import Image from "next/image";
+// app/page.tsx
+"use client";
 
-export default function Home() {
+import React, { useRef, useEffect } from "react";
+import MonacoEditor, { OnMount } from "@monaco-editor/react";
+import type * as monaco from "monaco-editor";
+import { initVimMode, VimMode } from "monaco-vim";
+
+const COMMANDS: Record<string, string> = {
+  help: `Available commands:
+help     Show help info
+clear    Clear the editor
+explain  Explain the code
+fix      Suggest a fix
+doc      Generate documentation
+`,
+  explain: "AI: Here's an explanation of your code (placeholder).",
+  fix: "AI: Here's a suggested fix (placeholder).",
+  doc: "AI: Here's generated documentation (placeholder).",
+};
+
+export default function HomePage() {
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const vimStatusBarRef = useRef<HTMLDivElement | null>(null);
+  const vimModeRef = useRef<VimMode | null>(null);
+
+  const handleEditorDidMount: OnMount = (editor, monacoInstance) => {
+    editorRef.current = editor;
+    if (vimStatusBarRef.current) {
+      vimModeRef.current = initVimMode(editor, vimStatusBarRef.current);
+    }
+    editor.addCommand(
+      monacoInstance.KeyCode.Enter,
+      () => {
+        if (!editorRef.current) return;
+        const value = editorRef.current.getValue();
+        const lines = value.split("\n");
+        const lastLine = lines[lines.length - 1].trim();
+
+        if (lastLine === "clear") {
+          // Clear the editor!
+          editorRef.current.setValue("");
+          return;
+        }
+
+        const output = COMMANDS[lastLine];
+        if (output) {
+          editorRef.current.setValue(value + "\n" + output + "\n");
+          // Move cursor to end
+          const model = editorRef.current.getModel();
+          if (model) {
+            const lineCount = model.getLineCount();
+            editorRef.current.setPosition({
+              lineNumber: lineCount + 1,
+              column: 1,
+            });
+          }
+        } else {
+          // Default: insert newline
+          editorRef.current.trigger("keyboard", "type", { text: "\n" });
+        }
+      },
+      ""
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      if (vimModeRef.current) {
+        vimModeRef.current.dispose();
+      }
+    };
+  }, []);
+
+  const initialCode = `# MDX Editor Terminal
+
+Type 'help' or 'clear', then press Enter!
+`;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <main style={{ padding: 24 }}>
+      <h2>MDX Editor (Monaco + Vim + Clear Command)</h2>
+      <div style={{ height: 400, marginBottom: 16 }}>
+        <MonacoEditor
+          height="100%"
+          defaultLanguage="markdown"
+          defaultValue={initialCode}
+          theme="vs-dark"
+          onMount={handleEditorDidMount}
+          options={{
+            minimap: { enabled: false },
+            wordWrap: "on",
+          }}
         />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+      <div
+        ref={vimStatusBarRef}
+        style={{
+          height: 24,
+          background: "#222",
+          color: "#fff",
+          padding: "2px 10px",
+          fontFamily: "monospace",
+          fontSize: "14px",
+        }}
+      />
+    </main>
   );
 }
