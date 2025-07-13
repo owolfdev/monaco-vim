@@ -1,3 +1,4 @@
+//src/app/page.tsx
 "use client";
 
 import React, { useRef, useEffect } from "react";
@@ -36,6 +37,11 @@ export default function HomePage() {
     monacoInstance: typeof monaco
   ) => {
     editorRef.current = editor;
+
+    // Focus the editor as soon as it mounts
+    setTimeout(() => {
+      editor.focus();
+    }, 0);
 
     // Dynamically import monaco-vim on client
     if (typeof window !== "undefined" && vimStatusBarRef.current) {
@@ -92,9 +98,14 @@ Type 'help' or 'clear', then press Enter!
 `;
 
   return (
-    <main style={{ padding: 24 }}>
-      <h2>MDX Editor (Monaco + Vim + Clear Command)</h2>
-      <div style={{ height: 400, marginBottom: 16 }}>
+    <main
+      style={{ padding: 24 }}
+      className="bg-neutral-900 text-white h-screen"
+    >
+      <h2 className="text-2xl font-bold text-white mb-4">
+        MDX Editor (Monaco + Vim + Clear Command)
+      </h2>
+      <div className="h-10/12 mb-4">
         <MonacoEditor
           height="100%"
           defaultLanguage="markdown"
@@ -104,6 +115,9 @@ Type 'help' or 'clear', then press Enter!
           options={{
             minimap: { enabled: false },
             wordWrap: "on",
+            fontSize: 16,
+            fontFamily: "monospace",
+            renderLineHighlight: "none",
           }}
         />
       </div>
