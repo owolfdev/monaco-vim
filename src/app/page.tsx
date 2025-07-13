@@ -1,10 +1,13 @@
-// app/page.tsx
 "use client";
 
 import React, { useRef, useEffect } from "react";
-import MonacoEditor, { OnMount } from "@monaco-editor/react";
+import dynamic from "next/dynamic";
 import type * as monaco from "monaco-editor";
-import { initVimMode, VimMode } from "monaco-vim";
+
+// Dynamically import MonacoEditor (ssr: false!)
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
+  ssr: false,
+});
 
 const COMMANDS: Record<string, string> = {
   help: `Available commands:
@@ -22,13 +25,27 @@ doc      Generate documentation
 export default function HomePage() {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const vimStatusBarRef = useRef<HTMLDivElement | null>(null);
+  // monaco-vim only loaded client-side
+  type VimMode = { dispose(): void };
+
   const vimModeRef = useRef<VimMode | null>(null);
 
-  const handleEditorDidMount: OnMount = (editor, monacoInstance) => {
+  // Only set up Vim mode after editor and DOM are ready
+  const handleEditorDidMount = async (
+    editor: monaco.editor.IStandaloneCodeEditor,
+    monacoInstance: typeof monaco
+  ) => {
     editorRef.current = editor;
-    if (vimStatusBarRef.current) {
-      vimModeRef.current = initVimMode(editor, vimStatusBarRef.current);
+
+    // Dynamically import monaco-vim on client
+    if (typeof window !== "undefined" && vimStatusBarRef.current) {
+      const monacoVim = await import("monaco-vim");
+      vimModeRef.current = monacoVim.initVimMode(
+        editor,
+        vimStatusBarRef.current
+      );
     }
+
     editor.addCommand(
       monacoInstance.KeyCode.Enter,
       () => {
@@ -38,7 +55,6 @@ export default function HomePage() {
         const lastLine = lines[lines.length - 1].trim();
 
         if (lastLine === "clear") {
-          // Clear the editor!
           editorRef.current.setValue("");
           return;
         }
@@ -46,7 +62,6 @@ export default function HomePage() {
         const output = COMMANDS[lastLine];
         if (output) {
           editorRef.current.setValue(value + "\n" + output + "\n");
-          // Move cursor to end
           const model = editorRef.current.getModel();
           if (model) {
             const lineCount = model.getLineCount();
@@ -56,7 +71,6 @@ export default function HomePage() {
             });
           }
         } else {
-          // Default: insert newline
           editorRef.current.trigger("keyboard", "type", { text: "\n" });
         }
       },
