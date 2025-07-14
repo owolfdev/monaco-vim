@@ -226,51 +226,77 @@ Or use the button below to toggle Vim mode.
 
   return (
     <div>
-      <div style={{ height, marginBottom: 8 }}>
+      <div
+        style={{ height, marginBottom: 8, boxShadow: "none" }}
+        className="shadow-none"
+      >
         <MonacoEditor
           height="100%"
           defaultLanguage="markdown"
           defaultValue={initialCode}
-          theme="vs-dark"
-          onMount={handleEditorDidMount}
+          theme="neutral-dark"
+          onMount={(editor, monacoInstance) => {
+            monacoInstance.editor.defineTheme("neutral-dark", {
+              base: "vs-dark",
+              inherit: true,
+              rules: [],
+              colors: {
+                "editor.background": "#171717",
+                "editor.shadow": "#0000",
+                "editorWidget.shadow": "#0000",
+                "editorGroup.border": "#171717",
+                "editorGroup.dropBackground": "#0000",
+                "editorGroupHeader.noTabsBackground": "#171717",
+                "editorOverviewRuler.border": "#171717",
+                "sideBar.background": "#171717",
+                "tab.activeBorder": "#171717",
+                "tab.border": "#171717",
+                "panel.border": "#171717",
+              },
+            });
+            monacoInstance.editor.setTheme("neutral-dark");
+            handleEditorDidMount(editor, monacoInstance);
+          }}
           options={{
             minimap: { enabled: false },
             wordWrap: "on",
             fontSize: 16,
             fontFamily: "monospace",
             renderLineHighlight: "none",
+            lineNumbers: "on",
           }}
         />
       </div>
       <div
+        className="bg-neutral-900 px-6"
         ref={vimStatusBarRef}
         style={{
           height: 24,
-          background: "#222",
           color: "#fff",
-          padding: "2px 10px",
           fontFamily: "monospace",
           fontSize: "14px",
           marginBottom: 12,
           display: vimEnabled ? "block" : "none",
         }}
       />
-      <button
-        className={`px-4 py-2 rounded font-semibold mt-2 ${
-          vimEnabled ? "bg-green-700 text-white" : "bg-gray-700 text-gray-200"
-        }`}
-        style={{
-          border: 0,
-          outline: 0,
-          cursor: "pointer",
-        }}
-        onClick={vimEnabled ? disableVim : enableVim}
-        disabled={false}
-      >
-        {vimEnabled ? "Disable Vim Mode" : "Enable Vim Mode"}
-      </button>
-      <div className="text-sm mt-2" style={{ opacity: 0.7 }}>
-        Vim mode is <b>{vimEnabled ? "ON" : "OFF"}</b>
+      <div className="px-6">
+        <button
+          className={`px-4 py-2 rounded font-semibold mt-2 ${
+            vimEnabled ? "bg-green-700 text-white" : "bg-gray-700 text-gray-200"
+          }`}
+          style={{
+            border: 0,
+            outline: 0,
+            cursor: "pointer",
+          }}
+          onClick={vimEnabled ? disableVim : enableVim}
+          disabled={false}
+        >
+          {vimEnabled ? "Disable Vim Mode" : "Enable Vim Mode"}
+        </button>
+        <div className="text-sm mt-2" style={{ opacity: 0.7 }}>
+          Vim mode is <b>{vimEnabled ? "ON" : "OFF"}</b>
+        </div>
       </div>
     </div>
   );
